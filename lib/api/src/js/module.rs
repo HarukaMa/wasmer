@@ -13,7 +13,8 @@ use std::io;
 use std::path::Path;
 #[cfg(feature = "std")]
 use thiserror::Error;
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen_futures::JsFuture;
 use wasmer_types::{
     ExportsIterator, ExternType, FunctionType, GlobalType, ImportsIterator, MemoryType, Mutability,
     Pages, TableType, Type,
@@ -211,7 +212,7 @@ impl Module {
         }
     }
 
-    pub(crate) fn instantiate(
+    pub(crate) async fn instantiate(
         &self,
         resolver: &dyn Resolver,
     ) -> Result<(WebAssembly::Instance, Vec<Export>), RuntimeError> {
@@ -245,8 +246,9 @@ impl Module {
             // the error for us, so we don't need to handle it
         }
         Ok((
-            WebAssembly::Instance::new(&self.module, &imports)
-                .map_err(|e: JsValue| -> RuntimeError { e.into() })?,
+            JsFuture::from(WebAssembly::instantiate_module(&self.module, &imports)).await
+                .map_err(|e: JsValue| -> RuntimeError { e.into() })?
+                .dyn_into()?,
             import_externs,
         ))
     }

@@ -92,12 +92,12 @@ impl Instance {
     /// Those are, as defined by the spec:
     ///  * Link errors that happen when plugging the imports into the instance
     ///  * Runtime errors that happen when running the module `start` function.
-    pub fn new(
+    pub async fn new(
         module: &Module,
         resolver: &(dyn Resolver + Send + Sync),
     ) -> Result<Self, InstantiationError> {
         let (instance, imports) = module
-            .instantiate(resolver)
+            .instantiate(resolver).await
             .map_err(|e| InstantiationError::Start(e))?;
 
         let self_instance = Self::from_module_and_instance(module, instance)?;
